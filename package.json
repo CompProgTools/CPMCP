@@ -1,0 +1,20 @@
+{
+  "name": "cpmcp",
+  "version": "1.0.0",
+  "description": "An MCP tool for competitive programming",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CompProgTools/CPMCP.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CompProgTools/CPMCP/issues"
+  },
+  "homepage": "https://github.com/CompProgTools/CPMCP#readme"
+}
