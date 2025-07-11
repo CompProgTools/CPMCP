@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/CompProgTools/CPMCP/issues"
   },
-  "homepage": "https://github.com/CompProgTools/CPMCP#readme"
+  "homepage": "https://github.com/CompProgTools/CPMCP#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.15.1"
+  }
 }
