@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import fs from "fs";
+import path from "path";
 
 const server = new McpServer({
   name: "CPMCP",
@@ -12,7 +13,7 @@ const server = new McpServer({
 
 const inputSchema = {
   testcases: z.string().describe(
-    "A string like '5 sumproblem.txt' or just '5'. The first token is the number of testcases. The second is optional filename."
+    "A string like '5 sumproblem.txt' or just '5'. The first token is the number of testcases. The second is optional path to a problem file."
   )
 };
 
@@ -33,7 +34,18 @@ server.registerTool(
       throw new Error("Please provide a valid positive integer for number of testcases");
     }
 
-    if (!filename) {
+    let filepath;
+
+    if (filename) {
+      if (path.isAbsolute(filename)) {
+        filepath = filename;
+      } else {
+        filepath = path.resolve(filename);
+      }
+      if (!fs.existsSync(filepath)) {
+        throw new Error(`File "${filepath}" does not exist.`);
+      }
+    } else {
       const txtFiles = fs
         .readdirSync(".")
         .filter(f => f.endsWith(".txt"))
@@ -46,67 +58,33 @@ server.registerTool(
       if (txtFiles.length === 0) {
         throw new Error("No .txt problem files found in the current directory.");
       }
-      filename = txtFiles[0].name;
+      filepath = path.resolve(txtFiles[0].name);
     }
 
-    const rawText = fs.readFileSync(filename, "utf-8");
-    let constraintsSection = "";
-    const constraintsRegex = /constraints([\s\S]*)/i;
-    const m = rawText.match(constraintsRegex);
-    if (m) {
-      constraintsSection = m[1];
-    }
-
-    const variableConstraints = {};
-    const regex = /(\d+)\s*≤\s*(\w+)\s*≤\s*([0-9\^]+)/g;
-    let match;
-    while ((match = regex.exec(constraintsSection)) !== null) {
-      const lower = parseInt(match[1]);
-      const varName = match[2];
-      const upperRaw = match[3];
-      let upper;
-      if (upperRaw.includes("^")) {
-        const parts = upperRaw.split("^");
-        upper = Math.pow(Number(parts[0]), Number(parts[1]));
-      } else {
-        upper = parseInt(upperRaw);
-      }
-      variableConstraints[varName] = { lower, upper };
-    }
-
-    if (Object.keys(variableConstraints).length === 0) {
-      throw new Error("No constraints found in problem file. Please ensure your problem file has a 'Constraints' section with bounds like '1 ≤ n ≤ 10^5'.");
-    }
-
-    const testcasesArr = [];
-    for (let i = 0; i < numTestcases; i++) {
-      let testcase = "";
-      for (const [varName, bounds] of Object.entries(variableConstraints)) {
-        const val = getRandomInt(bounds.lower, bounds.upper);
-        testcase += `${val} `;
-      }
-      testcasesArr.push(testcase.trim());
-    }
+    const problemContent = fs.readFileSync(filepath, "utf-8");
 
     return {
       content: [
         {
           type: "text",
-          text:
-            `✅ Problem file: ${filename}\n\n` +
-            `Constraints found:\n` +
-            `${JSON.stringify(variableConstraints, null, 2)}\n\n` +
-            `Generated testcases:\n` +
-            testcasesArr.join("\n")
+          text: `Please analyze this competitive programming problem and generate ${numTestcases} random test cases based on the constraints found in the problem description.
+
+Problem file: ${filepath}
+
+Problem content:
+${problemContent}
+
+Please:
+1. Extract the constraints from the problem description
+2. Generate ${numTestcases} random test cases that satisfy these constraints
+3. Format the output as individual test cases, one per line
+
+If you cannot find clear constraints in the problem description, please let me know what constraints you need clarified.`
         }
       ]
     };
   }
 );
-
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
